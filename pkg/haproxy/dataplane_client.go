@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -101,6 +102,15 @@ func (c *DataPlaneClient) UpdateBackendsInTransaction(ctx context.Context, trans
 		values.Set("transaction_id", transactionID)
 		resourcePath := path.Join(apiVersionPath, "services/haproxy/configuration/servers", b.Name)
 		if err := c.doRequest(ctx, http.MethodPut, resourcePath, values, payload, nil); err != nil {
+			var apiErr *apiStatusError
+			if errors.As(err, &apiErr) && apiErr.statusCode == http.StatusNotFound {
+				// Create if missing.
+				createPath := path.Join(apiVersionPath, "services/haproxy/configuration/servers")
+				if err := c.doRequest(ctx, http.MethodPost, createPath, values, payload, nil); err != nil {
+					return fmt.Errorf("create server %s: %w", b.Name, err)
+				}
+				continue
+			}
 			return fmt.Errorf("update server %s: %w", b.Name, err)
 		}
 	}
@@ -169,7 +179,7 @@ func (c *DataPlaneClient) doRequest(ctx context.Context, method, p string, query
 
 	if resp.StatusCode >= 300 {
 		data, _ := io.ReadAll(io.LimitReader(resp.Body, 4<<10))
-		return fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(data))
+		return &apiStatusError{statusCode: resp.StatusCode, body: string(data)}
 	}
 
 	if out != nil {
@@ -202,6 +212,15 @@ func decodeVersion(body io.Reader) (int64, error) {
 	}
 
 	return 0, fmt.Errorf("unexpected version payload: %s", string(raw))
+}
+
+type apiStatusError struct {
+	statusCode int
+	body       string
+}
+
+func (e *apiStatusError) Error() string {
+	return fmt.Sprintf("status %d: %s", e.statusCode, e.body)
 }
 
 func (c *DataPlaneClient) fetchConfigurationVersion(ctx context.Context) (int64, error) {
