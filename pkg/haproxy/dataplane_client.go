@@ -98,14 +98,12 @@ func (c *DataPlaneClient) UpdateBackendsInTransaction(ctx context.Context, trans
 			Check:   b.Check,
 		}
 		values := url.Values{}
-		values.Set("backend", c.backendName)
 		values.Set("transaction_id", transactionID)
-		resourcePath := path.Join(apiVersionPath, "services/haproxy/configuration/servers", b.Name)
+		resourcePath := path.Join(apiVersionPath, "services/haproxy/configuration/backends", c.backendName, "servers", b.Name)
 		if err := c.doRequest(ctx, http.MethodPut, resourcePath, values, payload, nil); err != nil {
 			var apiErr *apiStatusError
 			if errors.As(err, &apiErr) && apiErr.statusCode == http.StatusNotFound {
-				// Create if missing.
-				createPath := path.Join(apiVersionPath, "services/haproxy/configuration/servers")
+				createPath := path.Join(apiVersionPath, "services/haproxy/configuration/backends", c.backendName, "servers")
 				if err := c.doRequest(ctx, http.MethodPost, createPath, values, payload, nil); err != nil {
 					return fmt.Errorf("create server %s: %w", b.Name, err)
 				}
