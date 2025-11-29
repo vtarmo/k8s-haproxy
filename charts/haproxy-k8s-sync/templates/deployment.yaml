@@ -64,6 +64,11 @@ spec:
                 configMapKeyRef:
                   name: {{ include "haproxy-k8s-sync.fullname" . }}-config
                   key: ingress_service_name
+            - name: HAPROXY_BACKEND_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "haproxy-k8s-sync.fullname" . }}-config
+                  key: haproxy_backend_name
             - name: WORKER_COUNT
               value: "{{ .Values.env.workerCount }}"
             - name: RESYNC_PERIOD

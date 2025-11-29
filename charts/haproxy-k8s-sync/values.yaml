@@ -43,6 +43,7 @@ env:
     username: ""
     password: ""
     token: ""
+    backendName: ""
 
 livenessProbe:
   enabled: true

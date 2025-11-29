@@ -8,3 +8,4 @@ metadata:
 data:
   ingress_namespace: {{ .Values.env.ingressNamespace | quote }}
   ingress_service_name: {{ .Values.env.ingressServiceName | quote }}
+  haproxy_backend_name: {{ default .Values.env.ingressServiceName .Values.env.haproxy.backendName | quote }}

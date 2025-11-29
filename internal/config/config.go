@@ -13,6 +13,7 @@ type Config struct {
 	HAProxyUsername    string
 	HAProxyPassword    string
 	HAProxyToken       string
+	HAProxyBackendName string
 	IngressNamespace   string
 	IngressServiceName string
 	WorkerCount        int
@@ -26,6 +27,7 @@ func Load() (Config, error) {
 		IngressNamespace:   getEnv("INGRESS_NAMESPACE", "ingress-nginx"),
 		IngressServiceName: getEnv("INGRESS_SERVICE_NAME", "ingress-nginx"),
 		HAProxyBaseURL:     getEnv("HAPROXY_DATAPLANE_URL", "http://haproxy:5555"),
+		HAProxyBackendName: getEnv("HAPROXY_BACKEND_NAME", ""),
 		WorkerCount:        2,
 		ResyncPeriod:       30 * time.Second,
 		KubeconfigPath:     os.Getenv("KUBECONFIG"),
@@ -48,6 +50,10 @@ func Load() (Config, error) {
 			return Config{}, fmt.Errorf("invalid RESYNC_PERIOD value %q: %w", v, err)
 		}
 		cfg.ResyncPeriod = dur
+	}
+
+	if cfg.HAProxyBackendName == "" {
+		cfg.HAProxyBackendName = cfg.IngressServiceName
 	}
 
 	return cfg, nil

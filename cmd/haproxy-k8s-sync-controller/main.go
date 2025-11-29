@@ -38,7 +38,7 @@ func main() {
 	}
 
 	informers := k8s.NewInformers(clientset, cfg.IngressNamespace, cfg.IngressServiceName, cfg.ResyncPeriod)
-	haproxyClient := haproxy.NewDataPlaneClient(cfg.HAProxyBaseURL, cfg.HAProxyUsername, cfg.HAProxyPassword, cfg.HAProxyToken)
+	haproxyClient := haproxy.NewDataPlaneClient(cfg.HAProxyBaseURL, cfg.HAProxyUsername, cfg.HAProxyPassword, cfg.HAProxyToken, cfg.HAProxyBackendName)
 	syncer := haproxy.NewSyncer(haproxyClient)
 	ctrl := controller.NewController(informers, syncer, cfg.WorkerCount)
 
