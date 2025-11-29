@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+const apiVersionPath = "/v3"
+
 // Client defines interactions with the HAProxy Data Plane API.
 type Client interface {
 	BeginTransaction(ctx context.Context) (string, error)
@@ -49,7 +51,7 @@ func NewDataPlaneClient(baseURL, username, password, token, backendName string) 
 // BeginTransaction starts a new transaction in HAProxy Data Plane API.
 func (c *DataPlaneClient) BeginTransaction(ctx context.Context) (string, error) {
 	var resp transactionResponse
-	if err := c.doRequest(ctx, http.MethodPost, "/v2/services/haproxy/transactions", nil, nil, &resp); err != nil {
+	if err := c.doRequest(ctx, http.MethodPost, apiVersionPath+"/services/haproxy/transactions", nil, nil, &resp); err != nil {
 		return "", fmt.Errorf("begin transaction: %w", err)
 	}
 	if resp.ID == "" {
@@ -63,7 +65,7 @@ func (c *DataPlaneClient) CommitTransaction(ctx context.Context, transactionID s
 	if transactionID == "" {
 		return fmt.Errorf("commit transaction: empty transaction id")
 	}
-	path := fmt.Sprintf("/v2/services/haproxy/transactions/%s", transactionID)
+	path := fmt.Sprintf(apiVersionPath+"/services/haproxy/transactions/%s", transactionID)
 	return c.doRequest(ctx, http.MethodPut, path, nil, nil, nil)
 }
 
@@ -72,7 +74,7 @@ func (c *DataPlaneClient) AbortTransaction(ctx context.Context, transactionID st
 	if transactionID == "" {
 		return fmt.Errorf("abort transaction: empty transaction id")
 	}
-	path := fmt.Sprintf("/v2/services/haproxy/transactions/%s", transactionID)
+	path := fmt.Sprintf(apiVersionPath+"/services/haproxy/transactions/%s", transactionID)
 	return c.doRequest(ctx, http.MethodDelete, path, nil, nil, nil)
 }
 
@@ -89,7 +91,7 @@ func (c *DataPlaneClient) UpdateBackendsInTransaction(ctx context.Context, trans
 		values := url.Values{}
 		values.Set("backend", c.backendName)
 		values.Set("transaction_id", transactionID)
-		resourcePath := path.Join("/v2/services/haproxy/configuration/servers", b.Name)
+		resourcePath := path.Join(apiVersionPath, "services/haproxy/configuration/servers", b.Name)
 		if err := c.doRequest(ctx, http.MethodPut, resourcePath, values, payload, nil); err != nil {
 			return fmt.Errorf("update server %s: %w", b.Name, err)
 		}
@@ -99,7 +101,7 @@ func (c *DataPlaneClient) UpdateBackendsInTransaction(ctx context.Context, trans
 
 // UpdateHealthChecksInTransaction updates health check configuration within a transaction.
 func (c *DataPlaneClient) UpdateHealthChecksInTransaction(ctx context.Context, transactionID string, config HealthCheckConfig) error {
-	backendPath := fmt.Sprintf("/v2/services/haproxy/configuration/backends/%s", c.backendName)
+	backendPath := fmt.Sprintf(apiVersionPath+"/services/haproxy/configuration/backends/%s", c.backendName)
 	payload := map[string]any{
 		"name": c.backendName,
 		// Minimal health check tuning; servers also have Check=true for per-server checks.
