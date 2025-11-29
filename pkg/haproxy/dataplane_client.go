@@ -124,10 +124,6 @@ type transactionResponse struct {
 	ID string `json:"id"`
 }
 
-type versionResponse struct {
-	Version int64 `json:"version"`
-}
-
 type serverPayload struct {
 	Name    string `json:"name"`
 	Address string `json:"address"`
@@ -185,13 +181,62 @@ func (c *DataPlaneClient) doRequest(ctx context.Context, method, p string, query
 	return nil
 }
 
+func decodeVersion(body io.Reader) (int64, error) {
+	raw, err := io.ReadAll(io.LimitReader(body, 32<<10))
+	if err != nil {
+		return 0, fmt.Errorf("read version body: %w", err)
+	}
+
+	// Try as plain number.
+	var num int64
+	if err := json.Unmarshal(raw, &num); err == nil && num > 0 {
+		return num, nil
+	}
+
+	// Try as object {"version": N}.
+	var obj struct {
+		Version int64 `json:"version"`
+	}
+	if err := json.Unmarshal(raw, &obj); err == nil && obj.Version > 0 {
+		return obj.Version, nil
+	}
+
+	return 0, fmt.Errorf("unexpected version payload: %s", string(raw))
+}
+
 func (c *DataPlaneClient) fetchConfigurationVersion(ctx context.Context) (int64, error) {
-	var resp versionResponse
-	if err := c.doRequest(ctx, http.MethodGet, apiVersionPath+"/services/haproxy/configuration/version", nil, nil, &resp); err != nil {
+	u := fmt.Sprintf("%s/services/haproxy/configuration/version", apiVersionPath)
+
+	reqURL := *c.baseURL
+	reqURL.Path = path.Join(c.baseURL.Path, u)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL.String(), nil)
+	if err != nil {
+		return 0, fmt.Errorf("build request: %w", err)
+	}
+	if c.token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.token)
+	} else if c.username != "" || c.password != "" {
+		req.SetBasicAuth(c.username, c.password)
+	}
+
+	httpResp, err := c.client.Do(req)
+	if err != nil {
+		return 0, fmt.Errorf("do request: %w", err)
+	}
+	defer httpResp.Body.Close()
+
+	if httpResp.StatusCode >= 300 {
+		data, _ := io.ReadAll(io.LimitReader(httpResp.Body, 4<<10))
+		return 0, fmt.Errorf("unexpected status %d: %s", httpResp.StatusCode, string(data))
+	}
+
+	version, err := decodeVersion(httpResp.Body)
+	if err != nil {
 		return 0, err
 	}
-	if resp.Version == 0 {
+	if version == 0 {
 		return 0, fmt.Errorf("configuration version is zero")
 	}
-	return resp.Version, nil
+	return version, nil
 }

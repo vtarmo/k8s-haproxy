@@ -17,7 +17,7 @@ spec:
       serviceAccountName: haproxy-k8s-sync-controller
       containers:
         - name: controller
-          image: ghcr.io/vtarmo/k8s-haproxy:v1.0.3
+          image: ghcr.io/vtarmo/k8s-haproxy:v1.0.6
           imagePullPolicy: IfNotPresent
           env:
             - name: HAPROXY_DATAPLANE_URL
