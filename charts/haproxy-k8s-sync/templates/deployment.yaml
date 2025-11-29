@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "haproxy-k8s-sync.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "haproxy-k8s-sync.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "haproxy-k8s-sync.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "haproxy-k8s-sync.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "haproxy-k8s-sync.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: controller
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: HAPROXY_DATAPLANE_URL
+              value: {{ .Values.env.haproxy.dataplaneURL | quote }}
+            - name: HAPROXY_DATAPLANE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "haproxy-k8s-sync.fullname" . }}
+                  key: haproxy_dataplane_username
+                  optional: true
+            - name: HAPROXY_DATAPLANE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "haproxy-k8s-sync.fullname" . }}
+                  key: haproxy_dataplane_password
+                  optional: true
+            - name: HAPROXY_DATAPLANE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "haproxy-k8s-sync.fullname" . }}
+                  key: haproxy_dataplane_token
+                  optional: true
+            - name: INGRESS_NAMESPACE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "haproxy-k8s-sync.fullname" . }}-config
+                  key: ingress_namespace
+            - name: INGRESS_SERVICE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "haproxy-k8s-sync.fullname" . }}-config
+                  key: ingress_service_name
+            - name: WORKER_COUNT
+              value: "{{ .Values.env.workerCount }}"
+            - name: RESYNC_PERIOD
+              value: {{ .Values.env.resyncPeriod | quote }}
+          ports:
+            - name: http
+              containerPort: 8080
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.livenessProbe.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.readinessProbe.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

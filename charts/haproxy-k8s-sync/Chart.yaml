@@ -1,0 +1,6 @@
+apiVersion: v2
+name: haproxy-k8s-sync
+description: HAProxy Data Plane sync controller for ingress-nginx endpoints
+type: application
+version: 0.1.0
+appVersion: 0.1.0

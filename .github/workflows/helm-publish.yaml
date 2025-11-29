@@ -1,0 +1,39 @@
+name: Publish Helm Chart
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "charts/**"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  package-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.13.3
+
+      - name: Package chart
+        run: |
+          mkdir -p chart-packages
+          helm dependency update charts/haproxy-k8s-sync || true
+          helm package charts/haproxy-k8s-sync -d chart-packages
+          helm repo index chart-packages --url https://vtarmo.github.io/k8s-haproxy
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: chart-packages
+          publish_branch: gh-pages

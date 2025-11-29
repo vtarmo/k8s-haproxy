@@ -1,0 +1,31 @@
+{{- if .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "haproxy-k8s-sync.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "haproxy-k8s-sync.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+rules:
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "haproxy-k8s-sync.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "haproxy-k8s-sync.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "haproxy-k8s-sync.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "haproxy-k8s-sync.serviceAccountName" . }}
+{{- end }}
