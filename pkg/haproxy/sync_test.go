@@ -3,6 +3,7 @@ package haproxy
 import (
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -76,4 +77,59 @@ func boolPtr(v bool) *bool {
 
 func int32Ptr(v int32) *int32 {
 	return &v
+}
+
+func TestBuildBackendsFromEndpoints(t *testing.T) {
+	testCases := []struct {
+		name     string
+		eps      []*corev1.Endpoints
+		expected int
+	}{
+		{
+			name: "single endpoint",
+			eps: []*corev1.Endpoints{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "svc"},
+					Subsets: []corev1.EndpointSubset{
+						{
+							Addresses: []corev1.EndpointAddress{{IP: "10.0.0.1"}},
+							Ports:     []corev1.EndpointPort{{Port: 80}},
+						},
+					},
+				},
+			},
+			expected: 1,
+		},
+		{
+			name: "multiple subsets",
+			eps: []*corev1.Endpoints{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "svc"},
+					Subsets: []corev1.EndpointSubset{
+						{
+							Addresses: []corev1.EndpointAddress{{IP: "10.0.0.2"}},
+							Ports:     []corev1.EndpointPort{{Port: 8080}},
+						},
+						{
+							Addresses: []corev1.EndpointAddress{{IP: "10.0.0.3"}},
+							Ports:     []corev1.EndpointPort{{Port: 8443}},
+						},
+					},
+				},
+			},
+			expected: 2,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			backends := BuildBackendsFromEndpoints(tc.eps)
+			if len(backends) != tc.expected {
+				t.Fatalf("expected %d backends, got %d", tc.expected, len(backends))
+			}
+		})
+	}
 }

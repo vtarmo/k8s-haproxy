@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -56,7 +57,7 @@ type stubSyncer struct {
 	calls int
 }
 
-func (s *stubSyncer) SyncFromEndpointSlices(_ context.Context, slices []*discoveryv1.EndpointSlice) error {
+func (s *stubSyncer) Sync(_ context.Context, slices []*discoveryv1.EndpointSlice, _ []*corev1.Endpoints) error {
 	if len(slices) == 0 {
 		return nil
 	}

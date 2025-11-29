@@ -7,6 +7,7 @@ import (
 	"log"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -19,7 +20,7 @@ const queueKey = "ingress-backends"
 
 // BackendSyncer reconciles Kubernetes endpoints to HAProxy backends.
 type BackendSyncer interface {
-	SyncFromEndpointSlices(ctx context.Context, slices []*discoveryv1.EndpointSlice) error
+	Sync(ctx context.Context, slices []*discoveryv1.EndpointSlice, endpoints []*corev1.Endpoints) error
 }
 
 // Controller watches Endpoints and EndpointSlices and syncs HAProxy backends.
@@ -61,6 +62,9 @@ func (c *Controller) Run(ctx context.Context) error {
 	if ok := c.informers.WaitForSync(ctx); !ok {
 		return errors.New("failed to sync informer caches")
 	}
+
+	// Ensure at least one reconcile happens even if no events arrive immediately.
+	c.enqueue(nil)
 
 	for i := 0; i < c.workerCount; i++ {
 		go c.runWorker(ctx)
@@ -108,7 +112,14 @@ func (c *Controller) sync(ctx context.Context) error {
 		slicePtrs = append(slicePtrs, slices[i])
 	}
 
-	if err := c.syncer.SyncFromEndpointSlices(ctx, slicePtrs); err != nil {
+	endpoints, err := c.informers.EndpointsLister.List(labels.Everything())
+	if err != nil {
+		return fmt.Errorf("listing endpoints: %w", err)
+	}
+
+	log.Printf("reconciling backends: %d endpoint slices, %d endpoints", len(slicePtrs), len(endpoints))
+
+	if err := c.syncer.Sync(ctx, slicePtrs, endpoints); err != nil {
 		return fmt.Errorf("syncing haproxy backends: %w", err)
 	}
 

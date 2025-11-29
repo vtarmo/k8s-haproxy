@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 )
 
@@ -17,9 +18,13 @@ func NewSyncer(client Client) *Syncer {
 	return &Syncer{client: client}
 }
 
-// SyncFromEndpointSlices converts EndpointSlices to HAProxy backends and pushes them through a transaction.
-func (s *Syncer) SyncFromEndpointSlices(ctx context.Context, slices []*discoveryv1.EndpointSlice) error {
+// Sync converts EndpointSlices or Endpoints to HAProxy backends and pushes them through a transaction.
+func (s *Syncer) Sync(ctx context.Context, slices []*discoveryv1.EndpointSlice, endpoints []*corev1.Endpoints) error {
 	backends := BuildBackendsFromEndpointSlices(slices)
+	if len(backends) == 0 {
+		backends = BuildBackendsFromEndpoints(endpoints)
+	}
+
 	healthChecks := HealthCheckConfig{IntervalSeconds: 5, RiseCount: 2, FallCount: 2}
 	return s.SyncBackends(ctx, backends, healthChecks)
 }
@@ -72,6 +77,29 @@ func BuildBackendsFromEndpointSlices(slices []*discoveryv1.EndpointSlice) []Back
 						Name:    fmt.Sprintf("%s-%d", addr, *port.Port),
 						Address: addr,
 						Port:    *port.Port,
+						Weight:  1,
+						Check:   true,
+					})
+				}
+			}
+		}
+	}
+
+	return servers
+}
+
+// BuildBackendsFromEndpoints maps Endpoints resources to HAProxy backend server definitions.
+func BuildBackendsFromEndpoints(endpoints []*corev1.Endpoints) []BackendServer {
+	var servers []BackendServer
+
+	for _, ep := range endpoints {
+		for _, subset := range ep.Subsets {
+			for _, port := range subset.Ports {
+				for _, addr := range subset.Addresses {
+					servers = append(servers, BackendServer{
+						Name:    fmt.Sprintf("%s-%d", addr.IP, port.Port),
+						Address: addr.IP,
+						Port:    port.Port,
 						Weight:  1,
 						Check:   true,
 					})
