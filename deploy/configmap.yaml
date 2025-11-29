@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: haproxy-k8s-sync-config
+data:
+  ingress_namespace: ingress-nginx
+  ingress_service_name: ingress-nginx
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: haproxy-k8s-sync-config
+type: Opaque
+stringData:
+  haproxy_dataplane_url: http://haproxy:5555
+  haproxy_dataplane_username: ""
+  haproxy_dataplane_password: ""
+  haproxy_dataplane_token: ""

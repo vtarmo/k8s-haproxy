@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: haproxy-k8s-sync-controller
+  labels:
+    app: haproxy-k8s-sync-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: haproxy-k8s-sync-controller
+  template:
+    metadata:
+      labels:
+        app: haproxy-k8s-sync-controller
+    spec:
+      serviceAccountName: haproxy-k8s-sync-controller
+      containers:
+        - name: controller
+          image: ghcr.io/example/haproxy-k8s-sync-controller:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: HAPROXY_DATAPLANE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: haproxy-k8s-sync-config
+                  key: haproxy_dataplane_url
+            - name: HAPROXY_DATAPLANE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: haproxy-k8s-sync-config
+                  key: haproxy_dataplane_username
+                  optional: true
+            - name: HAPROXY_DATAPLANE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: haproxy-k8s-sync-config
+                  key: haproxy_dataplane_password
+                  optional: true
+            - name: HAPROXY_DATAPLANE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: haproxy-k8s-sync-config
+                  key: haproxy_dataplane_token
+                  optional: true
+            - name: INGRESS_NAMESPACE
+              valueFrom:
+                configMapKeyRef:
+                  name: haproxy-k8s-sync-config
+                  key: ingress_namespace
+            - name: INGRESS_SERVICE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: haproxy-k8s-sync-config
+                  key: ingress_service_name
+            - name: WORKER_COUNT
+              value: "2"
+          ports:
+            - name: http
+              containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi

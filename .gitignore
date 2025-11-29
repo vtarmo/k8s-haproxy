@@ -1,0 +1,28 @@
+# Go build cache and module artifacts
+bin/
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.coverprofile
+coverage.txt
+.cache/
+
+# Dependency/vendor directories
+vendor/
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS metadata
+.DS_Store
+
+# Custom ignores
+.ignores*
