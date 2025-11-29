@@ -50,8 +50,16 @@ func NewDataPlaneClient(baseURL, username, password, token, backendName string) 
 
 // BeginTransaction starts a new transaction in HAProxy Data Plane API.
 func (c *DataPlaneClient) BeginTransaction(ctx context.Context) (string, error) {
+	version, err := c.fetchConfigurationVersion(ctx)
+	if err != nil {
+		return "", fmt.Errorf("fetch version: %w", err)
+	}
+
 	var resp transactionResponse
-	if err := c.doRequest(ctx, http.MethodPost, apiVersionPath+"/services/haproxy/transactions", nil, nil, &resp); err != nil {
+	values := url.Values{}
+	values.Set("version", fmt.Sprintf("%d", version))
+
+	if err := c.doRequest(ctx, http.MethodPost, apiVersionPath+"/services/haproxy/transactions", values, nil, &resp); err != nil {
 		return "", fmt.Errorf("begin transaction: %w", err)
 	}
 	if resp.ID == "" {
@@ -116,6 +124,10 @@ type transactionResponse struct {
 	ID string `json:"id"`
 }
 
+type versionResponse struct {
+	Version int64 `json:"version"`
+}
+
 type serverPayload struct {
 	Name    string `json:"name"`
 	Address string `json:"address"`
@@ -171,4 +183,15 @@ func (c *DataPlaneClient) doRequest(ctx context.Context, method, p string, query
 	}
 
 	return nil
+}
+
+func (c *DataPlaneClient) fetchConfigurationVersion(ctx context.Context) (int64, error) {
+	var resp versionResponse
+	if err := c.doRequest(ctx, http.MethodGet, apiVersionPath+"/services/haproxy/configuration/version", nil, nil, &resp); err != nil {
+		return 0, err
+	}
+	if resp.Version == 0 {
+		return 0, fmt.Errorf("configuration version is zero")
+	}
+	return resp.Version, nil
 }
