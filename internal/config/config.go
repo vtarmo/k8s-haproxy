@@ -14,6 +14,7 @@ type Config struct {
 	HAProxyPassword    string
 	HAProxyToken       string
 	HAProxyBackendName string
+	HAProxyBackendPort int32
 	IngressNamespace   string
 	IngressServiceName string
 	WorkerCount        int
@@ -34,6 +35,14 @@ func Load() (Config, error) {
 		HAProxyUsername:    os.Getenv("HAPROXY_DATAPLANE_USERNAME"),
 		HAProxyPassword:    os.Getenv("HAPROXY_DATAPLANE_PASSWORD"),
 		HAProxyToken:       os.Getenv("HAPROXY_DATAPLANE_TOKEN"),
+	}
+
+	if v := os.Getenv("HAPROXY_BACKEND_PORT"); v != "" {
+		p, err := strconv.Atoi(v)
+		if err != nil || p <= 0 || p > 65535 {
+			return Config{}, fmt.Errorf("invalid HAPROXY_BACKEND_PORT value %q: %w", v, err)
+		}
+		cfg.HAProxyBackendPort = int32(p)
 	}
 
 	if v := os.Getenv("WORKER_COUNT"); v != "" {

@@ -63,7 +63,7 @@ func TestBuildBackendsFromEndpointSlices(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			backends := BuildBackendsFromEndpointSlices(tc.slices)
+			backends := BuildBackendsFromEndpointSlices(tc.slices, map[string]string{}, 0)
 			if len(backends) != tc.expected {
 				t.Fatalf("expected %d backends, got %d", tc.expected, len(backends))
 			}
@@ -126,10 +126,31 @@ func TestBuildBackendsFromEndpoints(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			backends := BuildBackendsFromEndpoints(tc.eps)
+			backends := BuildBackendsFromEndpoints(tc.eps, map[string]string{}, 0)
 			if len(backends) != tc.expected {
 				t.Fatalf("expected %d backends, got %d", tc.expected, len(backends))
 			}
 		})
+	}
+}
+
+func TestResolveAddressPrefersNodeIP(t *testing.T) {
+	nodeName := "node1"
+	addr := resolveAddress("10.0.0.10", &nodeName, map[string]string{"node1": "192.168.0.5"})
+	if addr != "192.168.0.5" {
+		t.Fatalf("expected node IP override, got %s", addr)
+	}
+}
+
+func TestSelectPortOverride(t *testing.T) {
+	p := int32(8080)
+	if got := selectPort(&p, 30443); got != 30443 {
+		t.Fatalf("expected override 30443, got %d", got)
+	}
+	if got := selectPort(&p, 0); got != 8080 {
+		t.Fatalf("expected found 8080, got %d", got)
+	}
+	if got := selectPort(nil, 0); got != 0 {
+		t.Fatalf("expected 0 when both nil and no override, got %d", got)
 	}
 }

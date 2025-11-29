@@ -39,7 +39,7 @@ func main() {
 
 	informers := k8s.NewInformers(clientset, cfg.IngressNamespace, cfg.IngressServiceName, cfg.ResyncPeriod)
 	haproxyClient := haproxy.NewDataPlaneClient(cfg.HAProxyBaseURL, cfg.HAProxyUsername, cfg.HAProxyPassword, cfg.HAProxyToken, cfg.HAProxyBackendName)
-	syncer := haproxy.NewSyncer(haproxyClient)
+	syncer := haproxy.NewSyncerWithPort(haproxyClient, cfg.HAProxyBackendPort)
 	ctrl := controller.NewController(informers, syncer, cfg.WorkerCount)
 
 	log.Printf("starting controller for %s/%s", cfg.IngressNamespace, cfg.IngressServiceName)

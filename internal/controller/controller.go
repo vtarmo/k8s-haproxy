@@ -20,7 +20,7 @@ const queueKey = "ingress-backends"
 
 // BackendSyncer reconciles Kubernetes endpoints to HAProxy backends.
 type BackendSyncer interface {
-	Sync(ctx context.Context, slices []*discoveryv1.EndpointSlice, endpoints []*corev1.Endpoints) error
+	Sync(ctx context.Context, slices []*discoveryv1.EndpointSlice, endpoints []*corev1.Endpoints, nodeIPs map[string]string) error
 }
 
 // Controller watches Endpoints and EndpointSlices and syncs HAProxy backends.
@@ -50,6 +50,7 @@ func NewController(informers *k8s.Informers, syncer BackendSyncer, workerCount i
 
 	informers.EndpointsInformer.AddEventHandler(handler)
 	informers.EndpointSliceInformer.AddEventHandler(handler)
+	informers.NodeInformer.AddEventHandler(handler)
 
 	return c
 }
@@ -117,11 +118,32 @@ func (c *Controller) sync(ctx context.Context) error {
 		return fmt.Errorf("listing endpoints: %w", err)
 	}
 
+	nodes, err := c.informers.NodeLister.List(labels.Everything())
+	if err != nil {
+		return fmt.Errorf("listing nodes: %w", err)
+	}
+
+	nodeIPs := make(map[string]string, len(nodes))
+	for _, n := range nodes {
+		if ip := internalIP(n); ip != "" {
+			nodeIPs[n.Name] = ip
+		}
+	}
+
 	log.Printf("reconciling backends: %d endpoint slices, %d endpoints", len(slicePtrs), len(endpoints))
 
-	if err := c.syncer.Sync(ctx, slicePtrs, endpoints); err != nil {
+	if err := c.syncer.Sync(ctx, slicePtrs, endpoints, nodeIPs); err != nil {
 		return fmt.Errorf("syncing haproxy backends: %w", err)
 	}
 
 	return nil
+}
+
+func internalIP(n *corev1.Node) string {
+	for _, addr := range n.Status.Addresses {
+		if addr.Type == corev1.NodeInternalIP && addr.Address != "" {
+			return addr.Address
+		}
+	}
+	return ""
 }

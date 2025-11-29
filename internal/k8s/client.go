@@ -29,10 +29,13 @@ func BuildConfig(_ context.Context, kubeconfigPath string) (*rest.Config, error)
 type Informers struct {
 	EndpointsInformer       cache.SharedIndexInformer
 	EndpointSliceInformer   cache.SharedIndexInformer
+	NodeInformer            cache.SharedIndexInformer
 	EndpointsLister         corelisters.EndpointsLister
 	EndpointSliceLister     discoverylisters.EndpointSliceLister
+	NodeLister              corelisters.NodeLister
 	endpointsHasSynced      cache.InformerSynced
 	endpointSlicesHasSynced cache.InformerSynced
+	nodeHasSynced           cache.InformerSynced
 }
 
 // NewInformers sets up filtered informers for Endpoints and EndpointSlices scoped to the given namespace and service.
@@ -57,13 +60,18 @@ func NewInformers(client kubernetes.Interface, namespace, serviceName string, re
 		},
 	)
 
+	nodeInformer := coreinformers.NewNodeInformer(client, resync, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+
 	return &Informers{
 		EndpointsInformer:       endpointsInformer,
 		EndpointSliceInformer:   endpointSliceInformer,
+		NodeInformer:            nodeInformer,
 		EndpointsLister:         corelisters.NewEndpointsLister(endpointsInformer.GetIndexer()),
 		EndpointSliceLister:     discoverylisters.NewEndpointSliceLister(endpointSliceInformer.GetIndexer()),
+		NodeLister:              corelisters.NewNodeLister(nodeInformer.GetIndexer()),
 		endpointsHasSynced:      endpointsInformer.HasSynced,
 		endpointSlicesHasSynced: endpointSliceInformer.HasSynced,
+		nodeHasSynced:           nodeInformer.HasSynced,
 	}
 }
 
@@ -71,9 +79,10 @@ func NewInformers(client kubernetes.Interface, namespace, serviceName string, re
 func (i *Informers) Start(ctx context.Context) {
 	go i.EndpointsInformer.Run(ctx.Done())
 	go i.EndpointSliceInformer.Run(ctx.Done())
+	go i.NodeInformer.Run(ctx.Done())
 }
 
 // WaitForSync blocks until caches have been synced or context is cancelled.
 func (i *Informers) WaitForSync(ctx context.Context) bool {
-	return cache.WaitForCacheSync(ctx.Done(), i.endpointsHasSynced, i.endpointSlicesHasSynced)
+	return cache.WaitForCacheSync(ctx.Done(), i.endpointsHasSynced, i.endpointSlicesHasSynced, i.nodeHasSynced)
 }

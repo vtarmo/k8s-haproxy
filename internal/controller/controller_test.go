@@ -57,7 +57,7 @@ type stubSyncer struct {
 	calls int
 }
 
-func (s *stubSyncer) Sync(_ context.Context, slices []*discoveryv1.EndpointSlice, _ []*corev1.Endpoints) error {
+func (s *stubSyncer) Sync(_ context.Context, slices []*discoveryv1.EndpointSlice, _ []*corev1.Endpoints, _ map[string]string) error {
 	if len(slices) == 0 {
 		return nil
 	}
