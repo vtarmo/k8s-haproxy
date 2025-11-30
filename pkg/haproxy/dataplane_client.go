@@ -91,12 +91,11 @@ func (c *DataPlaneClient) AbortTransaction(ctx context.Context, transactionID st
 func (c *DataPlaneClient) UpdateBackendsInTransaction(ctx context.Context, transactionID string, backends []BackendServer) error {
 	for _, b := range backends {
 		payload := serverPayload{
-			Name:        b.Name,
-			Address:     b.Address,
-			Port:        b.Port,
-			Weight:      b.Weight,
-			Check:       checkState(b.Check),
-			SendProxyV2: proxyState(b.SendProxyV2),
+			Name:    b.Name,
+			Address: b.Address,
+			Port:    b.Port,
+			Weight:  b.Weight,
+			Check:   checkState(b.Check),
 		}
 		values := url.Values{}
 		values.Set("transaction_id", transactionID)
@@ -120,9 +119,19 @@ func (c *DataPlaneClient) UpdateBackendsInTransaction(ctx context.Context, trans
 func (c *DataPlaneClient) UpdateHealthChecksInTransaction(ctx context.Context, transactionID string, config HealthCheckConfig) error {
 	backendPath := fmt.Sprintf(apiVersionPath+"/services/haproxy/configuration/backends/%s", c.backendName)
 	payload := map[string]any{
-		"name": c.backendName,
-		// Minimal health check tuning; servers also have Check=true for per-server checks.
+		"name":          c.backendName,
+		"adv_check":     "tcp-check",
+		"balance":       map[string]any{"algorithm": "roundrobin"},
 		"check_timeout": config.IntervalSeconds * 1000,
+	}
+	if config.SendProxyV2 {
+		payload["default_server"] = map[string]any{
+			"send-proxy-v2": "enabled",
+			"check":         "enabled",
+			"inter":         config.IntervalSeconds * 1000,
+			"rise":          config.RiseCount,
+			"fall":          config.FallCount,
+		}
 	}
 	values := url.Values{}
 	values.Set("transaction_id", transactionID)
@@ -134,12 +143,11 @@ type transactionResponse struct {
 }
 
 type serverPayload struct {
-	Name        string `json:"name"`
-	Address     string `json:"address"`
-	Port        int32  `json:"port"`
-	Weight      int    `json:"weight,omitempty"`
-	Check       string `json:"check,omitempty"`
-	SendProxyV2 string `json:"send-proxy-v2,omitempty"`
+	Name    string `json:"name"`
+	Address string `json:"address"`
+	Port    int32  `json:"port"`
+	Weight  int    `json:"weight,omitempty"`
+	Check   string `json:"check,omitempty"`
 }
 
 func (c *DataPlaneClient) doRequest(ctx context.Context, method, p string, query url.Values, body any, out any) error {
@@ -222,15 +230,7 @@ type apiStatusError struct {
 func (e *apiStatusError) Error() string {
 	return fmt.Sprintf("status %d: %s", e.statusCode, e.body)
 }
-
 func checkState(enabled bool) string {
-	if enabled {
-		return "enabled"
-	}
-	return "disabled"
-}
-
-func proxyState(enabled bool) string {
 	if enabled {
 		return "enabled"
 	}

@@ -33,12 +33,13 @@ func NewSyncerWithPortAndProxy(client Client, port int32, sendProxyV2 bool) *Syn
 // Sync converts EndpointSlices or Endpoints to HAProxy backends and pushes them through a transaction.
 func (s *Syncer) Sync(ctx context.Context, slices []*discoveryv1.EndpointSlice, endpoints []*corev1.Endpoints, nodeIPs map[string]string) error {
 	overridePort := s.port
-	backends := BuildBackendsFromEndpointSlices(slices, nodeIPs, overridePort, s.sendProxyV2)
+	backends := BuildBackendsFromEndpointSlices(slices, nodeIPs, overridePort)
 	if len(backends) == 0 {
-		backends = BuildBackendsFromEndpoints(endpoints, nodeIPs, overridePort, s.sendProxyV2)
+		backends = BuildBackendsFromEndpoints(endpoints, nodeIPs, overridePort)
 	}
 
 	healthChecks := HealthCheckConfig{IntervalSeconds: 5, RiseCount: 2, FallCount: 2}
+	healthChecks.SendProxyV2 = s.sendProxyV2
 	return s.SyncBackends(ctx, backends, healthChecks)
 }
 
@@ -71,7 +72,7 @@ func (s *Syncer) SyncBackends(ctx context.Context, backends []BackendServer, hea
 }
 
 // BuildBackendsFromEndpointSlices maps EndpointSlices to HAProxy backend server definitions.
-func BuildBackendsFromEndpointSlices(slices []*discoveryv1.EndpointSlice, nodeIPs map[string]string, overridePort int32, sendProxyV2 bool) []BackendServer {
+func BuildBackendsFromEndpointSlices(slices []*discoveryv1.EndpointSlice, nodeIPs map[string]string, overridePort int32) []BackendServer {
 	var servers []BackendServer
 
 	for _, slice := range slices {
@@ -89,12 +90,11 @@ func BuildBackendsFromEndpointSlices(slices []*discoveryv1.EndpointSlice, nodeIP
 				for _, addr := range ep.Addresses {
 					host := resolveAddress(addr, ep.NodeName, nodeIPs)
 					servers = append(servers, BackendServer{
-						Name:        serverName(addr, ep.NodeName, p),
-						Address:     host,
-						Port:        p,
-						Weight:      1,
-						Check:       true,
-						SendProxyV2: sendProxyV2,
+						Name:    serverName(addr, ep.NodeName, p),
+						Address: host,
+						Port:    p,
+						Weight:  1,
+						Check:   true,
 					})
 				}
 			}
@@ -105,7 +105,7 @@ func BuildBackendsFromEndpointSlices(slices []*discoveryv1.EndpointSlice, nodeIP
 }
 
 // BuildBackendsFromEndpoints maps Endpoints resources to HAProxy backend server definitions.
-func BuildBackendsFromEndpoints(endpoints []*corev1.Endpoints, nodeIPs map[string]string, overridePort int32, sendProxyV2 bool) []BackendServer {
+func BuildBackendsFromEndpoints(endpoints []*corev1.Endpoints, nodeIPs map[string]string, overridePort int32) []BackendServer {
 	var servers []BackendServer
 
 	for _, ep := range endpoints {
@@ -115,12 +115,11 @@ func BuildBackendsFromEndpoints(endpoints []*corev1.Endpoints, nodeIPs map[strin
 				for _, addr := range subset.Addresses {
 					host := resolveAddress(addr.IP, addr.NodeName, nodeIPs)
 					servers = append(servers, BackendServer{
-						Name:        serverName(addr.IP, addr.NodeName, p),
-						Address:     host,
-						Port:        p,
-						Weight:      1,
-						Check:       true,
-						SendProxyV2: sendProxyV2,
+						Name:    serverName(addr.IP, addr.NodeName, p),
+						Address: host,
+						Port:    p,
+						Weight:  1,
+						Check:   true,
 					})
 				}
 			}

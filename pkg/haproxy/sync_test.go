@@ -63,7 +63,7 @@ func TestBuildBackendsFromEndpointSlices(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			backends := BuildBackendsFromEndpointSlices(tc.slices, map[string]string{}, 0, false)
+			backends := BuildBackendsFromEndpointSlices(tc.slices, map[string]string{}, 0)
 			if len(backends) != tc.expected {
 				t.Fatalf("expected %d backends, got %d", tc.expected, len(backends))
 			}
@@ -126,7 +126,7 @@ func TestBuildBackendsFromEndpoints(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			backends := BuildBackendsFromEndpoints(tc.eps, map[string]string{}, 0, false)
+			backends := BuildBackendsFromEndpoints(tc.eps, map[string]string{}, 0)
 			if len(backends) != tc.expected {
 				t.Fatalf("expected %d backends, got %d", tc.expected, len(backends))
 			}
