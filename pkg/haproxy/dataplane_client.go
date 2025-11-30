@@ -121,7 +121,7 @@ func (c *DataPlaneClient) UpdateHealthChecksInTransaction(ctx context.Context, t
 	payload := map[string]any{
 		"name": c.backendName,
 		// Minimal health check tuning; servers also have Check=true for per-server checks.
-		"check_timeout": fmt.Sprintf("%dms", config.IntervalSeconds*1000),
+		"check_timeout": config.IntervalSeconds * 1000,
 	}
 	values := url.Values{}
 	values.Set("transaction_id", transactionID)
