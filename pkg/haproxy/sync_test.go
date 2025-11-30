@@ -63,7 +63,7 @@ func TestBuildBackendsFromEndpointSlices(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			backends := BuildBackendsFromEndpointSlices(tc.slices, map[string]string{}, 0)
+			backends := BuildBackendsFromEndpointSlices(tc.slices, map[string]string{}, 0, false)
 			if len(backends) != tc.expected {
 				t.Fatalf("expected %d backends, got %d", tc.expected, len(backends))
 			}
@@ -126,7 +126,7 @@ func TestBuildBackendsFromEndpoints(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			backends := BuildBackendsFromEndpoints(tc.eps, map[string]string{}, 0)
+			backends := BuildBackendsFromEndpoints(tc.eps, map[string]string{}, 0, false)
 			if len(backends) != tc.expected {
 				t.Fatalf("expected %d backends, got %d", tc.expected, len(backends))
 			}
@@ -152,5 +152,18 @@ func TestSelectPortOverride(t *testing.T) {
 	}
 	if got := selectPort(nil, 0); got != 0 {
 		t.Fatalf("expected 0 when both nil and no override, got %d", got)
+	}
+}
+
+func TestServerNamePrefersNode(t *testing.T) {
+	port := int32(30443)
+	node := "worker-1"
+	got := serverName("10.0.0.2", &node, port)
+	if got != "worker-1-30443" {
+		t.Fatalf("expected node name in server name, got %s", got)
+	}
+	got = serverName("10.0.0.2", nil, port)
+	if got != "10.0.0.2-30443" {
+		t.Fatalf("expected address fallback, got %s", got)
 	}
 }

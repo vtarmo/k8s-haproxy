@@ -7,6 +7,7 @@ type BackendServer struct {
 	Port    int32
 	Weight  int
 	Check   bool
+	SendProxyV2 bool
 }
 
 // HealthCheckConfig holds basic health check configuration for HAProxy backends.

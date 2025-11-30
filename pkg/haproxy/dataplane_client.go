@@ -91,11 +91,12 @@ func (c *DataPlaneClient) AbortTransaction(ctx context.Context, transactionID st
 func (c *DataPlaneClient) UpdateBackendsInTransaction(ctx context.Context, transactionID string, backends []BackendServer) error {
 	for _, b := range backends {
 		payload := serverPayload{
-			Name:    b.Name,
-			Address: b.Address,
-			Port:    b.Port,
-			Weight:  b.Weight,
-			Check:   checkState(b.Check),
+			Name:        b.Name,
+			Address:     b.Address,
+			Port:        b.Port,
+			Weight:      b.Weight,
+			Check:       checkState(b.Check),
+			SendProxyV2: proxyState(b.SendProxyV2),
 		}
 		values := url.Values{}
 		values.Set("transaction_id", transactionID)
@@ -133,11 +134,12 @@ type transactionResponse struct {
 }
 
 type serverPayload struct {
-	Name    string `json:"name"`
-	Address string `json:"address"`
-	Port    int32  `json:"port"`
-	Weight  int    `json:"weight,omitempty"`
-	Check   string `json:"check,omitempty"`
+	Name        string `json:"name"`
+	Address     string `json:"address"`
+	Port        int32  `json:"port"`
+	Weight      int    `json:"weight,omitempty"`
+	Check       string `json:"check,omitempty"`
+	SendProxyV2 string `json:"send-proxy-v2,omitempty"`
 }
 
 func (c *DataPlaneClient) doRequest(ctx context.Context, method, p string, query url.Values, body any, out any) error {
@@ -222,6 +224,13 @@ func (e *apiStatusError) Error() string {
 }
 
 func checkState(enabled bool) string {
+	if enabled {
+		return "enabled"
+	}
+	return "disabled"
+}
+
+func proxyState(enabled bool) string {
 	if enabled {
 		return "enabled"
 	}

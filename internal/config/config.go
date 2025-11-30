@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strconv"
 	"time"
 )
@@ -15,6 +16,7 @@ type Config struct {
 	HAProxyToken       string
 	HAProxyBackendName string
 	HAProxyBackendPort int32
+	SendProxyV2        bool
 	IngressNamespace   string
 	IngressServiceName string
 	WorkerCount        int
@@ -29,7 +31,8 @@ func Load() (Config, error) {
 		IngressServiceName: getEnv("INGRESS_SERVICE_NAME", "ingress-nginx"),
 		HAProxyBaseURL:     getEnv("HAPROXY_DATAPLANE_URL", "http://haproxy:5555"),
 		HAProxyBackendName: getEnv("HAPROXY_BACKEND_NAME", ""),
-		WorkerCount:        2,
+		SendProxyV2:        os.Getenv("HAPROXY_SEND_PROXY_V2") == "true",
+		WorkerCount:        runtime.NumCPU(),
 		ResyncPeriod:       30 * time.Second,
 		KubeconfigPath:     os.Getenv("KUBECONFIG"),
 		HAProxyUsername:    os.Getenv("HAPROXY_DATAPLANE_USERNAME"),
@@ -43,14 +46,6 @@ func Load() (Config, error) {
 			return Config{}, fmt.Errorf("invalid HAPROXY_BACKEND_PORT value %q: %w", v, err)
 		}
 		cfg.HAProxyBackendPort = int32(p)
-	}
-
-	if v := os.Getenv("WORKER_COUNT"); v != "" {
-		count, err := strconv.Atoi(v)
-		if err != nil || count < 1 {
-			return Config{}, fmt.Errorf("invalid WORKER_COUNT value %q: %w", v, err)
-		}
-		cfg.WorkerCount = count
 	}
 
 	if v := os.Getenv("RESYNC_PERIOD"); v != "" {
