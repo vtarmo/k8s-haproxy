@@ -5,7 +5,9 @@ metadata:
 data:
   ingress_namespace: ingress-nginx
   ingress_service_name: ingress-nginx-controller
-  haproxy_backend_name: ingress-nginx-controller
+  haproxy_backend_name: be_ingress_https
+  haproxy_backend_port: "30443"
+  haproxy_send_proxy_v2: "false"
 ---
 apiVersion: v1
 kind: Secret
@@ -13,7 +15,7 @@ metadata:
   name: haproxy-k8s-sync-config
 type: Opaque
 stringData:
-  haproxy_dataplane_url: http://10.251.62.1:5555
+  haproxy_dataplane_url: ""
   haproxy_dataplane_username: "admin"
-  haproxy_dataplane_password: "Ohg5ig6Gaesou1ieshii0eithoh2ohngimahhucochaeL4e"
+  haproxy_dataplane_password: "changeme"
   haproxy_dataplane_token: ""

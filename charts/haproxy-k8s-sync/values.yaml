@@ -1,9 +1,9 @@
-replicaCount: 1
+replicaCount: 1 # Controller pod replicas.
 
 image:
-  repository: ghcr.io/vtarmo/k8s-haproxy
-  tag: latest
-  pullPolicy: IfNotPresent
+  repository: ghcr.io/vtarmo/k8s-haproxy # Container image repository.
+  tag: latest                          # Image tag.
+  pullPolicy: IfNotPresent             # Image pull policy.
 
 imagePullSecrets: []
 
@@ -11,20 +11,20 @@ nameOverride: ""
 fullnameOverride: ""
 
 serviceAccount:
-  create: true
-  name: ""
-  annotations: {}
+  create: true          # Create dedicated ServiceAccount.
+  name: ""              # Custom SA name (default: release-based).
+  annotations: {}       # Extra annotations on SA.
 
 rbac:
-  create: true
+  create: true          # Create ClusterRole/Binding for endpoints/endpointslices/nodes.
 
 resources:
   requests:
-    cpu: 50m
-    memory: 64Mi
+    cpu: 50m            # CPU request.
+    memory: 64Mi        # Memory request.
   limits:
-    cpu: 200m
-    memory: 256Mi
+    cpu: 200m           # CPU limit.
+    memory: 256Mi       # Memory limit.
 
 podAnnotations: {}
 podLabels: {}
@@ -34,16 +34,17 @@ tolerations: []
 affinity: {}
 
 env:
-  ingressNamespace: ingress-nginx
-  ingressServiceName: ingress-nginx
-  workerCount: 2
-  resyncPeriod: 30s
+  ingressNamespace: ingress-nginx      # Namespace of ingress service to watch.
+  ingressServiceName: ingress-nginx    # Ingress Service name.
+  resyncPeriod: 30s                    # Informer resync interval.
   haproxy:
-    dataplaneURL: http://haproxy:5555
-    username: ""
-    password: ""
-    token: ""
-    backendName: ""
+    dataplaneURL: http://haproxy:5555  # HAProxy Data Plane API base URL.
+    username: ""                       # Data Plane basic auth username (optional).
+    password: ""                       # Data Plane basic auth password (optional).
+    token: ""                          # Data Plane bearer token (optional).
+    backendName: ""                    # Target HAProxy backend name (default: ingress service name).
+    backendPort: 0                     # Override backend port (useful for NodePort).
+    sendProxyV2: false                 # Enable PROXY protocol v2 on backend default-server.
 
 livenessProbe:
   enabled: true

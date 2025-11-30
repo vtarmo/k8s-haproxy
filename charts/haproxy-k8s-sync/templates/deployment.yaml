@@ -69,8 +69,16 @@ spec:
                 configMapKeyRef:
                   name: {{ include "haproxy-k8s-sync.fullname" . }}-config
                   key: haproxy_backend_name
-            - name: WORKER_COUNT
-              value: "{{ .Values.env.workerCount }}"
+            - name: HAPROXY_BACKEND_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "haproxy-k8s-sync.fullname" . }}-config
+                  key: haproxy_backend_port
+            - name: HAPROXY_SEND_PROXY_V2
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "haproxy-k8s-sync.fullname" . }}-config
+                  key: haproxy_send_proxy_v2
             - name: RESYNC_PERIOD
               value: {{ .Values.env.resyncPeriod | quote }}
           ports:

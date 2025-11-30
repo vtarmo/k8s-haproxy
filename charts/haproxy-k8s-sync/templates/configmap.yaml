@@ -9,3 +9,5 @@ data:
   ingress_namespace: {{ .Values.env.ingressNamespace | quote }}
   ingress_service_name: {{ .Values.env.ingressServiceName | quote }}
   haproxy_backend_name: {{ default .Values.env.ingressServiceName .Values.env.haproxy.backendName | quote }}
+  haproxy_backend_port: {{ toString .Values.env.haproxy.backendPort | quote }}
+  haproxy_send_proxy_v2: {{ ternary "true" "false" .Values.env.haproxy.sendProxyV2 | quote }}
