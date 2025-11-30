@@ -95,7 +95,7 @@ func (c *DataPlaneClient) UpdateBackendsInTransaction(ctx context.Context, trans
 			Address: b.Address,
 			Port:    b.Port,
 			Weight:  b.Weight,
-			Check:   b.Check,
+			Check:   checkState(b.Check),
 		}
 		values := url.Values{}
 		values.Set("transaction_id", transactionID)
@@ -137,7 +137,7 @@ type serverPayload struct {
 	Address string `json:"address"`
 	Port    int32  `json:"port"`
 	Weight  int    `json:"weight,omitempty"`
-	Check   bool   `json:"check,omitempty"`
+	Check   string `json:"check,omitempty"`
 }
 
 func (c *DataPlaneClient) doRequest(ctx context.Context, method, p string, query url.Values, body any, out any) error {
@@ -219,6 +219,13 @@ type apiStatusError struct {
 
 func (e *apiStatusError) Error() string {
 	return fmt.Sprintf("status %d: %s", e.statusCode, e.body)
+}
+
+func checkState(enabled bool) string {
+	if enabled {
+		return "enabled"
+	}
+	return "disabled"
 }
 
 func (c *DataPlaneClient) fetchConfigurationVersion(ctx context.Context) (int64, error) {
