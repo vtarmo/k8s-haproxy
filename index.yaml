@@ -2,13 +2,13 @@ apiVersion: v1
 entries:
   haproxy-k8s-sync:
   - apiVersion: v2
-    appVersion: v1.0.4
-    created: "2025-11-29T17:00:41.350089562Z"
+    appVersion: v1.0.14
+    created: "2025-11-30T19:54:18.656606285Z"
     description: HAProxy Data Plane sync controller for ingress-nginx endpoints
-    digest: c20a89e874e4d2a325e63b8d14c534efe71582cf03339e132a0a91fd7b377d2f
+    digest: a44dac5b10027adf094bf439fa7cc4723a90e8e6ff14df8908eedb000fa4bc33
     name: haproxy-k8s-sync
     type: application
     urls:
-    - https://vtarmo.github.io/k8s-haproxy/haproxy-k8s-sync-0.1.2.tgz
-    version: 0.1.2
-generated: "2025-11-29T17:00:41.349642524Z"
+    - https://vtarmo.github.io/k8s-haproxy/haproxy-k8s-sync-0.1.3.tgz
+    version: 0.1.3
+generated: "2025-11-30T19:54:18.656144491Z"
